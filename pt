@@ -1,1 +1,111 @@
 log("work")
+itemid = 5640
+seedid = 341
+delay_place = 100
+mode = "island" -- or "normal"
+harvesting = true
+planting = true
+
+function hit(x, y, itemid)
+    local me = GetLocal()
+    if not me then return end
+
+    local pktState = {
+       type = 0,
+       state = me.isLeft and 48 or 32,
+       x = x * 32,
+       y = y * 32,
+       px = x,
+       py = y
+    }
+   sendPacketRaw(false, pktState)
+
+   local pktAction = {
+       type = 3,
+       value = me.isLeft and 2608 or 2592,
+       x = x * 32,
+       y = y * 32,
+       px = x,
+       py = y,
+       value = itemid
+   }
+   sendPacketRaw(false, pktAction)
+   
+   Sleep(delay_place)
+end
+
+function zaxsd(text, netid)
+    local formatted = "`9[JADE] `8".. text
+    sendVariant({v1 = "OnConsoleMessage", v2 = formatted})
+    sendVariant({v1 = "OnTextOverlay", v2 = formatted})
+
+    if netid then
+       sendVariant({v1 = "OnTalkBubble", v2 = netid, v3 = formatted})
+    end
+end
+
+function zax(text) 
+   local me = GetLocal() 
+    if me then 
+       zaxsd(text, me.netID) 
+    else
+       zaxsd(text, nil)
+   end
+end
+
+function tp(x, y)
+   local pkt = {
+      type = 0, 
+      state = 32, 
+      x = x * 32, 
+      y = y * 32, 
+      px = x, 
+      py = y 
+   }
+   sendPacketRaw(false, pkt)
+end
+
+function harvest()
+   local y_max = (mode == "island") and 115 or 53
+     for y = 0, y_max do
+     for x = 0, 99 do
+     local tile = getTile(x, y)
+     if tile and tile.fg == seedid and tile.readyharvest then
+        tp(x, y)
+        hit(x, y, 18)
+      end
+    end
+  end
+end
+
+function plant()
+   local y_max = (mode == "island") and 115 or 53
+   for x = 0, 99 do 
+      for y = 0, y_max do 
+      local tile = getTile(x, y) 
+      local below = getTile(x, y + 1) 
+      if tile and tile.fg == 0 and below and below.fg ~= 0 then 
+        tp(x, y) 
+        hit(x, y, itemid) 
+      end
+    end
+  end
+end
+
+while true do 
+   local me = GetLocal() 
+   if me then 
+     if harvesting then 
+        zax("harvesting") 
+        harvest() 
+     end 
+     if planting then 
+       zax("planting") 
+       plant() 
+     end 
+     Sleep(1000) 
+  else
+     zax("exiting world, `4stop script")
+     break 
+end
+end
